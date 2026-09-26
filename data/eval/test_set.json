@@ -1,0 +1,92 @@
+[
+  {
+    "id": "eval_001",
+    "question_type": "summary",
+    "question": "What is the summary of the paper 'Снижение рисков применения LLM (Large Language Model) в сфере экономической безопасности предприятий молочной промышленности на основе подхода RAG (Retrieval-Augmented Generation)'?",
+    "ground_truth": "В статье проведено исследование особенностей снижения рисков применения LLM (Large Language Model) в сфере экономической безопасности предприятий молочной промышленности на основе подхода RAG (Retrieval-Augmented Generation) в современных условиях",
+    "ground_truth_doc_ids": [
+      "10.47576/2949-1894.2026.7.7.023"
+    ]
+  },
+  {
+    "id": "eval_002",
+    "question_type": "authors",
+    "question": "Who wrote the paper 'Retrieval-Augmented Generation for Large Language Model-Based Intelligent Assistants: A Review'?",
+    "ground_truth": "The authors are Zilang Shao.",
+    "ground_truth_doc_ids": [
+      "10.70267/aitia.2026482489"
+    ]
+  },
+  {
+    "id": "eval_003",
+    "question_type": "date",
+    "question": "When was the paper 'Advances in Reinforcement Learning for Retrieval-Augmented Generation in Large Language Model' published?",
+    "ground_truth": "It was published on 2026-09-08.",
+    "ground_truth_doc_ids": [
+      "10.54254/2755-2721/2026.36624"
+    ]
+  },
+  {
+    "id": "eval_004",
+    "question_type": "categories",
+    "question": "What categories or subjects does the paper 'Retrieval-Augmented Large Language Model Agents for Automated Scientific Literature Review Generation' belong to?",
+    "ground_truth": "It belongs to General.",
+    "ground_truth_doc_ids": [
+      "10.20944/preprints202604.0339.v1"
+    ]
+  },
+  {
+    "id": "eval_005",
+    "question_type": "summary",
+    "question": "What is the summary of the paper 'The Age of Autonomous Agents: A Bibliometric Review of Agentic AI Architectures, Applications, and Emerging Challenges'?",
+    "ground_truth": "The rapid evolution of large language models (LLMs) has catalyzed a shift from passive AI systems toward autonomous agentic architectures capable of reasoning, memory, tool use, and multi-agent collaboration",
+    "ground_truth_doc_ids": [
+      "10.63646/kpqm1958"
+    ]
+  },
+  {
+    "id": "eval_006",
+    "question_type": "authors",
+    "question": "Who wrote the paper 'Agentic Retrieval-Augmented Generation for Verifiable Regulatory Compliance in Urban Cyber-Physical Systems'?",
+    "ground_truth": "The authors are Sathiska Priyad, Gayathri Karthick.",
+    "ground_truth_doc_ids": [
+      "10.21203/rs.3.rs-10349437/v1"
+    ]
+  },
+  {
+    "id": "eval_007",
+    "question_type": "date",
+    "question": "When was the paper 'Speculative Retrieval-Augmented Generation for Cost-Efficient Large Language Model Inference' published?",
+    "ground_truth": "It was published on 2026-05-06.",
+    "ground_truth_doc_ids": [
+      "10.55041/isjem07213"
+    ]
+  },
+  {
+    "id": "eval_008",
+    "question_type": "categories",
+    "question": "What categories or subjects does the paper 'An Agentic AI System for Roof Design Compliance Using Computer Vision, Retrieval-Augmented Generation and Large Language Models' belong to?",
+    "ground_truth": "It belongs to General.",
+    "ground_truth_doc_ids": [
+      "10.3390/buildings16132637"
+    ]
+  },
+  {
+    "id": "eval_009",
+    "question_type": "summary",
+    "question": "What is the summary of the paper 'Does retrieval-augmented generation impact medical students’ perceptions of large language models? (Preprint)'?",
+    "ground_truth": "BACKGROUND There is evidence of rapid adoption of large language models (LLMs) in undergraduate medical education, with medical students using it to support their learning",
+    "ground_truth_doc_ids": [
+      "10.2196/preprints.106157"
+    ]
+  },
+  {
+    "id": "eval_010",
+    "question_type": "authors",
+    "question": "Who wrote the paper 'Integrating Retrieval-Augmented Generation with Large Language Model for Robust and Explainable AI Text Detection'?",
+    "ground_truth": "The authors are Ibtasam Ur Rehman, Muhammad Islam, Muhammad Yousaf Rehman, Basharat Hussain.",
+    "ground_truth_doc_ids": [
+      "10.3390/knowledge6030022"
+    ]
+  }
+]
