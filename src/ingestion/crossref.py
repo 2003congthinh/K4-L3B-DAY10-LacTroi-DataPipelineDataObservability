@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+import json
+import re
+import time
 from pathlib import Path
+import requests
 
 from core.config import Settings
 
@@ -21,31 +25,142 @@ class PaperRecord:
     comment: str
 
 
-def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
-    """TODO(student): parse Crossref payload thanh list PaperRecord.
+def _clean_text(text: str | None) -> str:
+    """Xóa các thẻ HTML/XML rác (như <jats:p>) và thu gọn khoảng trắng."""
+    if not text:
+        return ""
+    cleaned = re.sub(r"<[^>]+>", "", text)
+    return " ".join(cleaned.split()).strip()
 
-    Pseudo-code:
-    1. Duyet `payload["message"]["items"]`.
-    2. Lay DOI, title, abstract, authors, subject, dates, URLs.
-    3. Chuan hoa text va bo record khong hop le.
-    4. Tra ve list `PaperRecord`.
-    """
-    raise NotImplementedError("Student task: implement Crossref payload parsing.")
+
+def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
+    """Parse Crossref JSON payload thành danh sách PaperRecord."""
+    items = payload.get("message", {}).get("items", [])
+    records: list[PaperRecord] = []
+
+    for item in items:
+        # DOI làm paper_id
+        paper_id = item.get("DOI", "").strip()
+        if not paper_id:
+            continue
+
+        # Title
+        titles = item.get("title", [])
+        title = _clean_text(titles[0]) if titles else "Untitled"
+
+        # Abstract / Summary
+        raw_abstract = item.get("abstract", "")
+        summary = _clean_text(raw_abstract)
+
+        # Authors
+        authors_raw = item.get("author", [])
+        authors: list[str] = []
+        for a in authors_raw:
+            given = a.get("given", "").strip()
+            family = a.get("family", "").strip()
+            name = f"{given} {family}".strip()
+            if name:
+                authors.append(name)
+
+        # Categories / Subjects
+        categories = [str(cat).strip() for cat in item.get("subject", []) if cat]
+        primary_category = categories[0] if categories else "General"
+
+        # Dates
+        published = ""
+        created_parts = item.get("created", {}).get("date-parts", [])
+        if created_parts and created_parts[0]:
+            published = "-".join(f"{x:02d}" for x in created_parts[0])
+
+        updated = published
+        deposited_parts = item.get("deposited", {}).get("date-parts", [])
+        if deposited_parts and deposited_parts[0]:
+            updated = "-".join(f"{x:02d}" for x in deposited_parts[0])
+
+        # URLs & Links
+        abs_url = item.get("URL", f"https://doi.org/{paper_id}")
+        pdf_url = ""
+        for link in item.get("link", []):
+            if link.get("content-type") == "application/pdf":
+                pdf_url = link.get("URL", "")
+                break
+
+        comment = item.get("publisher", "")
+
+        records.append(
+            PaperRecord(
+                paper_id=paper_id,
+                title=title,
+                summary=summary,
+                authors=authors,
+                categories=categories,
+                primary_category=primary_category,
+                published=published,
+                updated=updated,
+                abs_url=abs_url,
+                pdf_url=pdf_url,
+                comment=comment,
+            )
+        )
+
+    return records
 
 
 def fetch_source_records(settings: Settings) -> list[PaperRecord]:
-    """TODO(student): goi source API, luu raw response, parse thanh records.
+    """Gọi source API, lưu raw response, parse thành records và cất giữ file raw."""
+    raw_api_path = settings.paths.raw_api_response
+    raw_records_path = settings.paths.raw_records_json
 
-    Pseudo-code:
-    1. Tao params tu `settings.source_query`, `settings.source_filter`, `settings.max_results`.
-    2. Goi API voi retry cho cac status code nhu 429/503.
-    3. Luu raw response vao `settings.paths.raw_api_response`.
-    4. Parse payload bang `parse_crossref_payload`.
-    5. Luu records vao `settings.paths.raw_records_json`.
-    """
-    raise NotImplementedError("Student task: implement source fetching.")
+    raw_api_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_records_path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = None
+
+    # Gọi API với retry logic
+    url = "https://api.crossref.org/works"
+    params = {
+        "query": getattr(settings, "source_query", "data pipeline"),
+        "filter": getattr(settings, "source_filter", "has-abstract:true"),
+        "rows": getattr(settings, "max_results", 24),
+    }
+    headers = {"User-Agent": "LabAI-DataPipeline/1.0 (mailto:student@example.com)"}
+
+    for attempt in range(3):
+        try:
+            res = requests.get(url, params=params, headers=headers, timeout=10)
+            if res.status_code == 200:
+                payload = res.json()
+                break
+            elif res.status_code in (429, 503):
+                time.sleep(2 * (attempt + 1))
+        except Exception:
+            time.sleep(1)
+
+    # Fallback đọc từ file snapshot nếu gọi API thất bại
+    if not payload:
+        if raw_api_path.exists():
+            with open(raw_api_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        else:
+            raise RuntimeError(f"Không thể kết nối API và không tìm thấy snapshot tại {raw_api_path}")
+
+    # 1. Lưu Raw API Response
+    with open(raw_api_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    # 2. Parse payload
+    records = parse_crossref_payload(payload)
+
+    # 3. Lưu Raw Records JSON
+    records_dict = [asdict(r) for r in records]
+    with open(raw_records_path, "w", encoding="utf-8") as f:
+        json.dump(records_dict, f, ensure_ascii=False, indent=2)
+
+    return records
 
 
 def load_raw_records(path: Path) -> list[PaperRecord]:
-    """TODO(student): doc JSON snapshot va map thanh `PaperRecord`."""
-    raise NotImplementedError("Student task: implement raw record loading.")
+    """Đọc JSON snapshot và map thành danh sách PaperRecord."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return [PaperRecord(**item) for item in data]
