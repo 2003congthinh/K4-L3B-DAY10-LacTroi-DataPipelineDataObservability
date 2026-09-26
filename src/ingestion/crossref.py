@@ -26,7 +26,6 @@ class PaperRecord:
 
 
 def _clean_text(text: str | None) -> str:
-    """Xóa các thẻ HTML/XML rác (như <jats:p>) và thu gọn khoảng trắng."""
     if not text:
         return ""
     cleaned = re.sub(r"<[^>]+>", "", text)
@@ -34,25 +33,20 @@ def _clean_text(text: str | None) -> str:
 
 
 def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
-    """Parse Crossref JSON payload thành danh sách PaperRecord."""
     items = payload.get("message", {}).get("items", [])
     records: list[PaperRecord] = []
 
     for item in items:
-        # DOI làm paper_id
         paper_id = item.get("DOI", "").strip()
         if not paper_id:
             continue
 
-        # Title
         titles = item.get("title", [])
         title = _clean_text(titles[0]) if titles else "Untitled"
 
-        # Abstract / Summary
         raw_abstract = item.get("abstract", "")
         summary = _clean_text(raw_abstract)
 
-        # Authors
         authors_raw = item.get("author", [])
         authors: list[str] = []
         for a in authors_raw:
@@ -62,11 +56,9 @@ def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
             if name:
                 authors.append(name)
 
-        # Categories / Subjects
         categories = [str(cat).strip() for cat in item.get("subject", []) if cat]
         primary_category = categories[0] if categories else "General"
 
-        # Dates
         published = ""
         created_parts = item.get("created", {}).get("date-parts", [])
         if created_parts and created_parts[0]:
@@ -77,7 +69,6 @@ def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
         if deposited_parts and deposited_parts[0]:
             updated = "-".join(f"{x:02d}" for x in deposited_parts[0])
 
-        # URLs & Links
         abs_url = item.get("URL", f"https://doi.org/{paper_id}")
         pdf_url = ""
         for link in item.get("link", []):
@@ -107,7 +98,6 @@ def parse_crossref_payload(payload: dict) -> list[PaperRecord]:
 
 
 def fetch_source_records(settings: Settings) -> list[PaperRecord]:
-    """Gọi source API, lưu raw response, parse thành records và cất giữ file raw."""
     raw_api_path = settings.paths.raw_api_response
     raw_records_path = settings.paths.raw_records_json
 
@@ -116,7 +106,6 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
 
     payload = None
 
-    # Gọi API với retry logic
     url = "https://api.crossref.org/works"
     params = {
         "query": getattr(settings, "source_query", "data pipeline"),
@@ -136,7 +125,6 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
         except Exception:
             time.sleep(1)
 
-    # Fallback đọc từ file snapshot nếu gọi API thất bại
     if not payload:
         if raw_api_path.exists():
             with open(raw_api_path, "r", encoding="utf-8") as f:
@@ -144,14 +132,11 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
         else:
             raise RuntimeError(f"Không thể kết nối API và không tìm thấy snapshot tại {raw_api_path}")
 
-    # 1. Lưu Raw API Response
     with open(raw_api_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    # 2. Parse payload
     records = parse_crossref_payload(payload)
 
-    # 3. Lưu Raw Records JSON
     records_dict = [asdict(r) for r in records]
     with open(raw_records_path, "w", encoding="utf-8") as f:
         json.dump(records_dict, f, ensure_ascii=False, indent=2)
@@ -160,7 +145,6 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
 
 
 def load_raw_records(path: Path) -> list[PaperRecord]:
-    """Đọc JSON snapshot và map thành danh sách PaperRecord."""
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return [PaperRecord(**item) for item in data]
